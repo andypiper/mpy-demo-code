@@ -1,9 +1,9 @@
 # quick demo for EuroPython 2022
 # based on @aallen Gist
 
-import socket
-import network
-import machine
+import socket, network
+import machine, sys
+import time
 
 
 ssid = 'Explore-uPython'
@@ -13,14 +13,18 @@ led = machine.Pin("LED", machine.Pin.OUT)
 
 ap = network.WLAN(network.AP_IF)
 ap.config(essid=ssid, password=password)
-ap.config(pm = 0xa11140) # turn of wifi power saving (3.6.3 in Pico W docs)
+ap.config(pm = 0xa11140) # turn off wifi power saving (3.6.3 in Pico W docs)
 ap.active(True)
 
 while ap.active() == False:
   pass
 
-print('Connection successful')
+print('Access Point is online')
 print(ap.ifconfig())
+
+# format the MicroPython version as a string
+# so we can use in HTTP server header
+mpyver = f'{sys.implementation.name} {sys.implementation.version[0]}.{sys.implementation.version[1]}.{sys.implementation.version[2]} {sys.implementation._machine}'
 
 html = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
@@ -36,9 +40,9 @@ html = """<!DOCTYPE html>
   </g>
 </svg>
         <p><br/>Enjoy exploring <a href="https://micropython.org">MicroPython</a>!<br/><br/>
-        Thank you for coming! after the session, here are some places to learn more...
-        <ul><li>Explore <a href="https://awesome-micropython.org">Awesome MicroPython</a></li>
-        <li>Learn from <a href="https://https://bhave.sh/">Tutorials from Bhavesh</a></li>
+        Thank you for coming! These links will not work while you're connected to the Pico, but after the session, here are some places to learn more...
+        <ul><li>Explore <a href="https://awesome-micropython.com">Awesome MicroPython</a></li>
+        <li>Learn from <a href="https://bhave.sh/">Tutorials from Bhavesh</a></li>
         <li>Try the <a href="https://docs.wokwi.com/guides/micropython">Wokwi device simulator</a></li>
         <li>Read the <a href="https://forum.micropython.org">MicroPython forums</a></li>
         <li>Check out the <a href="https://twitter.com/search?q=micropython%20OR%20upython%20OR%20%22micro%20python%22%20OR%20mpython%20OR%20url%3Amicropython%20lang%3Aen&f=live">latest #MicroPython Tweets</a></li>
@@ -55,6 +59,12 @@ s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 s.bind(addr)
 s.listen(1)
 
+# signal that we're ready for requests
+for x in range(6):
+    time.sleep(0.1)
+    led.toggle()
+    time.sleep(0.1)
+
 print('listening on', addr)
 led.off()
 
@@ -67,7 +77,7 @@ while True:
         led.on()
         print(request)
 
-        cl.send('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
+        cl.send(f'HTTP/1.0 200 OK\r\nserver: {mpyver}\r\ncontent-type: text/html\r\n\r\n')
         cl.send(html)
         cl.close()
         led.off()
@@ -76,4 +86,3 @@ while True:
         cl.close()
         print('connection closed')
         
-
