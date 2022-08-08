@@ -13,6 +13,7 @@ led = machine.Pin("LED", machine.Pin.OUT)
 
 ap = network.WLAN(network.AP_IF)
 ap.config(essid=ssid, password=password)
+ap.config(pm = 0xa11140) # turn of wifi power saving (3.6.3 in Pico W docs)
 ap.active(True)
 
 while ap.active() == False:
